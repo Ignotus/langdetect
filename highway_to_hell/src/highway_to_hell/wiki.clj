@@ -10,11 +10,12 @@
      article-name]))
 
 (defn get-text [country article-name]
-  (let [url (get-url country article-name)]
-    (let [[{[_ {[{[{[{[data] :content}] :content}] :content}] :content}] :content}] 
-      (html-resource (java.net.URL. url))]
+  (let [url
+        (get-url country article-name)
+        [{[_ {[{[{[{[data] :content}] :content}] :content}] :content}] :content}]
+        (html-resource (java.net.URL. url))]
       data 
-      )))
+      ))
 
 (defn remove-html-tags [content]
   (.text (jsoup.soup/parse content)))
