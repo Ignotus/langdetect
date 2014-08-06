@@ -4,3 +4,7 @@ highway_to_hell
 
 How to run
   $ java -jar highway_to_hell-0.1.0-standalone.jar [args]
+
+  or
+
+  $ lein run
