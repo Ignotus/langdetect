@@ -45,6 +45,17 @@ Evaluation formula (in Python):
 Where `detected_langs` are maps produced by the tool,
       `correct_langs` is a list of languages for the texts given.
 
+To be eligible for prizes you should beat the accuracy of `language-detection`:
+
+- on test data it is: `0.8584281`
+- on evaluation data it is: `0.8660753`
+
+Note, that you have unfair advantage over it, because it detects 53 languages,
+and you need to distinguish only among 7. :)
+
+File `test.zip` contains 1000 text snippets extracted from Wikipedia that were used for testing.
+The evaluation set of documents will be similar.
+
 Submission should be performed in the form of a pull request to this repository.
 
 1. You should [fork](https://help.github.com/articles/fork-a-repo) the repository to your github account.
@@ -52,5 +63,6 @@ Submission should be performed in the form of a pull request to this repository.
    listing all participants
    and comments on your how to setup your solution if needed (optional).
 3. After finishing the task, send a [pull request](https://help.github.com/articles/using-pull-requests).
+4. Optionally, but ideally, please include a description of your approach  in the `README`.
 
 Submission deadline: 00:00 14 Aug
