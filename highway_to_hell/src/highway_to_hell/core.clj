@@ -3,7 +3,9 @@
   (:gen-class))
 
 (defn parse-data [data]
-  (clojure.string/split data #"\s"))
+  (do
+    (println data)
+    (clojure.string/split data #"(\s+([,.»«:%'\[\])(-+—/\\]*\s*)*)|(([,.»«:%'\[\])(-+—/\\]+\s*)+)")))
 
 
 (defn -main
