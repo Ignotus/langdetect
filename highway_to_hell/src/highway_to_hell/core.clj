@@ -4,11 +4,8 @@
 
 (defn parse-data [data]
   (do
-    (println data)
     (clojure.string/split data #"(\s+([,.»«:%'\[\])(-+—/\\]*\s*)*)|(([,.»«:%'\[\])(-+—/\\]+\s*)+)")))
 
-
 (defn -main
-  "I don't do a whole lot ... yet."
   [page-name & args]
-  (println (clojure.string/join ", " (parse-data (clojure.string/lower-case (remove-html-tags (get-text :uk page-name)))))))
+  (println (clojure.string/join "\n" (parse-data (clojure.string/lower-case (slurp page-name))))))
