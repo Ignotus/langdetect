@@ -2,9 +2,15 @@ highway_to_hell
   Minh Ngo <nlminhtl . at # gMa1l d0t com>
 
 
+This application is based on the bigrams frequency approach
+
+Dependencies:
+  bash, g++, lein
+
+  https://github.com/technomancy/leiningen
+
+Building:
+  make 
+
 How to run
-  $ java -jar highway_to_hell-0.1.0-standalone.jar [args]
-
-  or
-
-  $ lein run
+  $ ./start.sh <FILENAME> 
