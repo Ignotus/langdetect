@@ -2,10 +2,12 @@
 #include <functional>
 #include <iostream>
 #include <fstream>
-#include <map>
+#include <unordered_map>
 #include <iterator>
 #include <locale>
 #include <cmath>
+
+#include <omp.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -38,7 +40,9 @@ int country_id(const std::string& country)
 
 void get_words(const std::string& file_name, std::list<std::wstring>& word_list)
 {
+  #pragma omp critical
     std::cout << "Process: " << file_name << std::endl;
+    
     std::wfstream in(file_name, std::fstream::in);
     std::wstring line;
 
@@ -54,7 +58,7 @@ void get_words(const std::string& file_name, std::list<std::wstring>& word_list)
     }
 }
 
-void load_dict(const std::string& file, std::map<std::wstring, unsigned long>& map,
+void load_dict(const std::string& file, std::unordered_map<std::wstring, unsigned long>& map,
                unsigned long& sum)
 {
     std::wfstream in(file, std::fstream::in);
@@ -80,7 +84,7 @@ void load_dict(const std::string& file, std::map<std::wstring, unsigned long>& m
 
 void detect(const std::string& filename)
 {
-    std::vector<std::map<std::wstring, unsigned long>> trigrams_frequencies(7);
+    std::vector<std::unordered_map<std::wstring, unsigned long>> trigrams_frequencies(7);
     // Load dict
     const char *countries[] = {"en", "ru", "bg", "uk", "de", "af", "pl"}; 
     unsigned long sum[7];
@@ -119,7 +123,7 @@ void detect(const std::string& filename)
     {
         for (int j = 0; j < 7; ++j)
         {
-            const std::map<std::wstring, unsigned long>& m = trigrams_frequencies[j];
+            const std::unordered_map<std::wstring, unsigned long>& m = trigrams_frequencies[j];
 
             auto it = m.find(trigram);
             double frequency = 0;
@@ -148,7 +152,86 @@ void detect(const std::string& filename)
     }
 
     std::wcout << countries[6] << L": " << perplexity[6] / sump << L"}" << std::endl;
+}
 
+void train(const std::string& file_name)
+{
+    boost::filesystem::path directory(file_name);
+
+    std::vector<std::unordered_map<std::wstring, unsigned long>> trigrams_frequencies(7);
+    
+    std::vector<std::vector<boost::filesystem::path>> files(7);
+    for (boost::filesystem::directory_iterator it(directory), end_it; it != end_it; ++it)
+    {
+        if (!boost::filesystem::is_directory(it->status()))
+        {
+            const boost::filesystem::path& file_path = it->path();
+            if (file_path.extension().string() == ".txt")
+            {
+              const std::string& country = get_country(file_path.filename().string());
+              files[country_id(country)].push_back(file_path);
+            }
+        }
+    }
+    
+    
+    omp_set_num_threads(4);
+    
+#pragma omp parallel for
+    for (int k = 0; k < 7; ++k)
+    {
+          for (const boost::filesystem::path& file : files[k])
+          {
+              const std::string& file_name = file.filename().string();
+
+              auto& m = trigrams_frequencies[k];
+
+              std::list<std::wstring> word_list;
+              get_words(file.string(), word_list);
+              
+              for (const std::wstring& token : word_list)
+              {
+                  if (token.size() < 3)
+                      continue;
+                  for (int i = 0; i < token.size() - 2; ++i)
+                  {
+                      std::wstring trigram = L"   ";
+                      trigram[0] = token[i];
+                      trigram[1] = token[i + 1];
+                      trigram[2] = token[i + 2];
+                      std::transform(trigram.begin(), trigram.end(), trigram.begin(), std::bind2nd(std::ptr_fun(&std::tolower<wchar_t>), std::locale("")));
+
+                      auto it = m.find(trigram);  
+                      if (it == m.end())
+                          m[trigram] = 1;
+                      else
+                          ++m[trigram];
+                  }
+              }
+          }
+    }
+
+    const char *countries[] = {"en", "ru", "bg", "uk", "de", "af", "pl"}; 
+
+#pragma omp parallel for
+    for (int i = 0; i < static_cast<int>(trigrams_frequencies.size()); ++i)
+    {
+        std::wfstream file(countries[i], std::fstream::out);
+        
+        std::vector<std::pair<std::wstring, unsigned long> > ll;
+        ll.reserve(trigrams_frequencies[i].size());
+        for (const auto& p1 : trigrams_frequencies[i])
+            ll.push_back(std::make_pair(p1.first, p1.second));
+
+        std::sort(ll.begin(), ll.end(), [](const std::pair<std::wstring, unsigned long>& f,
+                                           const std::pair<std::wstring, unsigned long>& s)
+                                           {
+                                            return f.second > s.second;
+                                           });
+
+        for (const auto& p1 : ll)
+            file << p1.first << L" " << p1.second << std::endl;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -166,85 +249,7 @@ int main(int argc, char *argv[])
     if (strcmp(argv[1], "-train"))
         return -1;
 
-
-    boost::filesystem::path directory(argv[2]);
-
-    std::vector<std::map<std::wstring, unsigned long>> trigrams_frequencies(7);
-
-    for (boost::filesystem::directory_iterator it(directory), end_it; it != end_it; ++it)
-    {
-        if (!boost::filesystem::is_directory(it->status()))
-        {
-            const boost::filesystem::path& file_path = it->path();
-//            std::cout << "Process: " << file_path.string() << std::endl;
-            if (file_path.extension().string() == ".txt")
-            {
-                const std::string& file_name = file_path.filename().string();
-                const std::string& country = get_country(file_name);
-
-                auto& m = trigrams_frequencies[country_id(country)];
-
-
-                //TODO: Process each file
-                std::list<std::wstring> word_list;
-                get_words(file_path.string(), word_list);
-                
-                for (const std::wstring& token : word_list)
-                {
-                    if (token.size() < 3)
-                        continue;
-                    for (int i = 0; i < token.size() - 2; ++i)
-                    {
-                        std::wstring trigram = L"   ";
-                        trigram[0] = token[i];
-                        trigram[1] = token[i + 1];
-                        trigram[2] = token[i + 2];
-                        std::transform(trigram.begin(), trigram.end(), trigram.begin(), std::bind2nd(std::ptr_fun(&std::tolower<wchar_t>), std::locale("")));
-
-
-                        auto it = m.find(trigram);  
-                        if (it == m.end())
-                            m[trigram] = 1;
-                        else
-                            ++m[trigram];
-                    }
-                    
-                    // Process token
-
-                }
-            }
-        }
-    }
-
-    const char *countries[] = {"en", "ru", "bg", "uk", "de", "af", "pl"}; 
-
-    int i = 0;
-    for (const auto& p : trigrams_frequencies)
-    {
-        std::wfstream file(countries[i], std::fstream::out);
-        
-        std::vector<std::pair<std::wstring, unsigned long> > ll;
-        ll.reserve(p.size());
-        for (const auto& p1 : p)
-        {
-            ll.push_back(std::make_pair(p1.first, p1.second));
-
-            //file << p1.first << L" " << p1.second << std::endl;
-        }
-
-        std::sort(ll.begin(), ll.end(), [](const std::pair<std::wstring, unsigned long>& f,
-                                           const std::pair<std::wstring, unsigned long>& s)
-                                           {
-                                            return f.second > s.second;
-                                           });
-
-        for (const auto& p1 : ll)
-            file << p1.first << L" " << p1.second << std::endl;
-
-
-        ++i;
-    }
-
+    train(argv[2]);
 
     return 0;
 }
