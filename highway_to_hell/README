@@ -1,15 +1,19 @@
 highway_to_hell
     Minh Ngo <nlminhtl . at # gMa1l d0t com>
 
-This application is based on the trigrams frequency approach
+This application is based on the trigrams frequency approach. It uses perplexity as a criteria to determine a language.
+Current accuracy (on the test set): 0.893
 
 Dependencies:
-    g++, boost filesystems, boost regex, boost system
+    g++, boost filesystems, boost regex, boost system, OpenMP
 
 Building:
     make
 
 Train data:
+
+    First of all you need to copy dataset.zip into the wiki folder. You can get this dataset from here https://www.dropbox.com/s/9vy34890nllibgd/dataset.zip?m=
+
     pushd wiki
     ./unpack_data.sh
     popd
@@ -17,3 +21,10 @@ Train data:
 
 How to run
     $ ./trigram_calc -detect <file name> 
+
+For getting only one answer without probability
+    $ ./trigram_calc -detect-one-answer <file name>
+    
+
+For running test:
+    $ ./test.sh

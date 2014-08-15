@@ -40,8 +40,8 @@ int country_id(const std::string& country)
 
 void get_words(const std::string& file_name, std::list<std::wstring>& word_list)
 {
-  #pragma omp critical
-    std::cout << "Process: " << file_name << std::endl;
+  //#pragma omp critical
+    //std::cout << "Process: " << file_name << std::endl;
     
     std::wfstream in(file_name, std::fstream::in);
     std::wstring line;
@@ -82,7 +82,7 @@ void load_dict(const std::string& file, std::unordered_map<std::wstring, unsigne
     }
 }
 
-void detect(const std::string& filename)
+void detect(const std::string& filename, bool one_answer = false)
 {
     std::vector<std::unordered_map<std::wstring, unsigned long>> trigrams_frequencies(7);
     // Load dict
@@ -90,9 +90,9 @@ void detect(const std::string& filename)
     unsigned long sum[7];
     for (int i = 0; i < 7; ++i)
     {
-        std::wcout << L"Loading dict .. " << std::endl;
+        //std::wcout << L"Loading dict .. " << std::endl;
         load_dict(countries[i], trigrams_frequencies[country_id(countries[i])], sum[i]);
-        std::wcout << L"Dict size: " << trigrams_frequencies[country_id(countries[i])].size() << std::endl; 
+        //std::wcout << L"Dict size: " << trigrams_frequencies[country_id(countries[i])].size() << std::endl; 
     }
 
     std::list<std::wstring> word_list;
@@ -145,13 +145,32 @@ void detect(const std::string& filename)
     }
     
 
-    std::wcout << L"{";
-    for (int i = 0; i < 6; ++i)
+    if (!one_answer)
     {
-        std::wcout << countries[i] << L": " << perplexity[i] / sump  << L", ";
-    }
+        std::wcout << L"{";
+        for (int i = 0; i < 6; ++i)
+        {
+            std::wcout << countries[i] << L": " << perplexity[i] / sump  << L", ";
+        }
 
-    std::wcout << countries[6] << L": " << perplexity[6] / sump << L"}" << std::endl;
+        std::wcout << countries[6] << L": " << perplexity[6] / sump << L"}" << std::endl;
+    }
+    else
+    {
+        int max_index = 0;
+        double max_value = 0;
+        for (int i = 0; i < 7; ++i)
+        {
+            if ((perplexity[i] / sump) > max_value)
+            {
+                max_index = i;
+                max_value = perplexity[i] / sump;
+            }
+        }
+        
+        std::cout << countries[max_index] << std::endl;
+    }
+    
 }
 
 void train(const std::string& file_name)
@@ -243,6 +262,12 @@ int main(int argc, char *argv[])
     if (!strcmp(argv[1], "-detect"))
     {
         detect(argv[2]); 
+        return 0;
+    }
+    
+    if (!strcmp(argv[1], "-detect-one-answer"))
+    {
+        detect(argv[2], true);
         return 0;
     }
 
