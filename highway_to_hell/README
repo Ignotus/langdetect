@@ -1,16 +1,19 @@
 highway_to_hell
-  Minh Ngo <nlminhtl . at # gMa1l d0t com>
+    Minh Ngo <nlminhtl . at # gMa1l d0t com>
 
-
-This application is based on the bigrams frequency approach
+This application is based on the trigrams frequency approach
 
 Dependencies:
-  bash, g++, lein
-
-  https://github.com/technomancy/leiningen
+    g++, boost filesystems, boost regex, boost system
 
 Building:
-  make 
+    make
+
+Train data:
+    pushd wiki
+    ./unpack_data.sh
+    popd
+    make clean && make && make gen
 
 How to run
-  $ ./start.sh <FILENAME> 
+    $ ./trigram_calc -detect <file name> 
